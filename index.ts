@@ -26,25 +26,24 @@ class QuoteExtractor {
 
     private mapBetweenQuoteTypeToRunableFunction = new Map<Quotestypes,Function>();
     constructor(){
-        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Json,this.getQuotesFromJson);
-        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.XML,this.getQuotesFromXML);
-        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Image,this.getQuoFromImage);
+        // Have to bind the function in order the function will be familier with the scope (this)
+        let getQuotesFromJson: Function  = this.getQuotesFromJson.bind(this);
+        let getQuotesFromXML: Function = this.getQuotesFromXML.bind(this);
+        let getQuoFromImage: Function = this.getQuoFromImage.bind(this);
+        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Json,getQuotesFromJson);
+        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.XML,getQuotesFromXML);
+        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Image,getQuoFromImage);
     }
-    async getQuotes(quoteTypes:Quotestypes[],page:Number, numberOfQuotesPeerPage:Number) {
+    async getQuotes(quoteTypes:Quotestypes[],page:number, numberOfQuotesPeerPage:number) {
         let returnQuotes: Quote[] = [];
         for(let quoteType of quoteTypes){
             const runableFunctionToGetQuotes = this.mapBetweenQuoteTypeToRunableFunction.get(quoteType);
             if(runableFunctionToGetQuotes){
-                console.log(await runableFunctionToGetQuotes());
-                //returnQuotes = returnQuotes.concat(runableFunctionToGetQuotes());
+                returnQuotes = returnQuotes.concat(await runableFunctionToGetQuotes());
             }
         }
-        /*const jsonQuotePromise = this.getQuotesFromJson();
-        const xmlQuotePromise = this.getQuotesFromXML();
-        const imageQuotePromise = this.getQuoFromImage();
-        const [jsonQuote, xmlQuote, imageQuote] = await Promise.all([jsonQuotePromise, xmlQuotePromise, imageQuotePromise]);
-        */
-        return returnQuotes;
+        // return only the reuested page and number of quotes for the specific page
+        return returnQuotes.slice((page-1)*numberOfQuotesPeerPage,page*numberOfQuotesPeerPage);
     }
     async getQuotesFromJson() {
         try {
@@ -52,6 +51,7 @@ class QuoteExtractor {
             const data = response.data;
             return data;
         } catch (error) {
+            console.log(error);
             console.log("something went wrong with getting quote from json API");
             return [];
         }
@@ -61,18 +61,16 @@ class QuoteExtractor {
         try {
             const response = await axios.get<string>('https://dimkinv.github.io/node-workshop/xml-source.xml');
             const data = response.data;
-            console.log(data);
             const dataCovertToJSON = this.convertFromXMLToJson(data);
             return dataCovertToJSON;
         } catch (error) {
+            console.log(error);
             console.log("something went wrong with getting quote from XML API");
             return [];
         }
     }
 
     convertFromXMLToJson(xml: string): Quote[] {
-        console.log("doron1");
-        console.log(xml);
         const parseString = xml2js.parseString;
         let responseFromParse: Quote[] = [];
         parseString(xml, { explicitArray: false }, function (error, result) {
@@ -96,6 +94,7 @@ class QuoteExtractor {
             }
             return returnQuotes;
         } catch (error) {
+            console.log(error);
             console.log("something went wrong with getting quote from image API");
             return [];
         }
@@ -117,10 +116,11 @@ class QuoteExtractor {
                     }
                 ]
             };
-            const response = await axios.post<OCRREsponse>('https://vision.googleapis.com/v1/images:annotate?key=AIzaSyDJTmcSD6ZUUMBzSvHp8s4OdSUHYuZzyQc', body);
+            const response = await axios.post<OCRREsponse>('https://vision.googleapis.com/v1/images:annotate?key=<Your_Key>', body);
             const data = response.data;
             return data;
         } catch (error) {
+            console.log(error);
             console.log("something went wrong with getting text from image API");
             throw new Error("something went wrong with getting text from image API");
         }
@@ -131,9 +131,9 @@ class QuoteExtractor {
 async function main() {
 
     const quoteExtractor = new QuoteExtractor();
-    const returnQuotes = await quoteExtractor.getQuotes([Quotestypes.Image],2,2);
+    const returnQuotes = await quoteExtractor.getQuotes([Quotestypes.Json],1,5);
 
-    //console.log(returnQuotes);
+    console.log(returnQuotes);
 }
 
 main();

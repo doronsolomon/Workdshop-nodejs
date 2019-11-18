@@ -23,9 +23,13 @@ var Quotestypes;
 class QuoteExtractor {
     constructor() {
         this.mapBetweenQuoteTypeToRunableFunction = new Map();
-        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Json, this.getQuotesFromJson);
-        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.XML, this.getQuotesFromXML);
-        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Image, this.getQuoFromImage);
+        // Have to bind the function in order the function will be familier with the scope (this)
+        let getQuotesFromJson = this.getQuotesFromJson.bind(this);
+        let getQuotesFromXML = this.getQuotesFromXML.bind(this);
+        let getQuoFromImage = this.getQuoFromImage.bind(this);
+        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Json, getQuotesFromJson);
+        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.XML, getQuotesFromXML);
+        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Image, getQuoFromImage);
     }
     getQuotes(quoteTypes, page, numberOfQuotesPeerPage) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -33,16 +37,11 @@ class QuoteExtractor {
             for (let quoteType of quoteTypes) {
                 const runableFunctionToGetQuotes = this.mapBetweenQuoteTypeToRunableFunction.get(quoteType);
                 if (runableFunctionToGetQuotes) {
-                    console.log(yield runableFunctionToGetQuotes());
-                    //returnQuotes = returnQuotes.concat(runableFunctionToGetQuotes());
+                    returnQuotes = returnQuotes.concat(yield runableFunctionToGetQuotes());
                 }
             }
-            /*const jsonQuotePromise = this.getQuotesFromJson();
-            const xmlQuotePromise = this.getQuotesFromXML();
-            const imageQuotePromise = this.getQuoFromImage();
-            const [jsonQuote, xmlQuote, imageQuote] = await Promise.all([jsonQuotePromise, xmlQuotePromise, imageQuotePromise]);
-            */
-            return returnQuotes;
+            // return only the reuested page and number of quotes for the specific page
+            return returnQuotes.slice((page - 1) * numberOfQuotesPeerPage, page * numberOfQuotesPeerPage);
         });
     }
     getQuotesFromJson() {
@@ -53,6 +52,7 @@ class QuoteExtractor {
                 return data;
             }
             catch (error) {
+                console.log(error);
                 console.log("something went wrong with getting quote from json API");
                 return [];
             }
@@ -63,19 +63,17 @@ class QuoteExtractor {
             try {
                 const response = yield axios_1.default.get('https://dimkinv.github.io/node-workshop/xml-source.xml');
                 const data = response.data;
-                console.log(data);
                 const dataCovertToJSON = this.convertFromXMLToJson(data);
                 return dataCovertToJSON;
             }
             catch (error) {
+                console.log(error);
                 console.log("something went wrong with getting quote from XML API");
                 return [];
             }
         });
     }
     convertFromXMLToJson(xml) {
-        console.log("doron1");
-        console.log(xml);
         const parseString = xml2js_1.default.parseString;
         let responseFromParse = [];
         parseString(xml, { explicitArray: false }, function (error, result) {
@@ -99,6 +97,7 @@ class QuoteExtractor {
                 return returnQuotes;
             }
             catch (error) {
+                console.log(error);
                 console.log("something went wrong with getting quote from image API");
                 return [];
             }
@@ -121,11 +120,12 @@ class QuoteExtractor {
                         }
                     ]
                 };
-                const response = yield axios_1.default.post('https://vision.googleapis.com/v1/images:annotate?key=AIzaSyDJTmcSD6ZUUMBzSvHp8s4OdSUHYuZzyQc', body);
+                const response = yield axios_1.default.post('https://vision.googleapis.com/v1/images:annotate?key=<Your_Key>', body);
                 const data = response.data;
                 return data;
             }
             catch (error) {
+                console.log(error);
                 console.log("something went wrong with getting text from image API");
                 throw new Error("something went wrong with getting text from image API");
             }
@@ -135,8 +135,8 @@ class QuoteExtractor {
 function main() {
     return __awaiter(this, void 0, void 0, function* () {
         const quoteExtractor = new QuoteExtractor();
-        const returnQuotes = yield quoteExtractor.getQuotes([Quotestypes.Image], 2, 2);
-        //console.log(returnQuotes);
+        const returnQuotes = yield quoteExtractor.getQuotes([Quotestypes.Json], 1, 5);
+        console.log(returnQuotes);
     });
 }
 main();
