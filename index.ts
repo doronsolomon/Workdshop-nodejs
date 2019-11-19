@@ -35,15 +35,36 @@ class QuoteExtractor {
         this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Image,getQuoFromImage);
     }
     async getQuotes(quoteTypes:Quotestypes[],page:number, numberOfQuotesPeerPage:number) {
+        // validate that each type pas only once
+        const uniqQuoteType = new Set(quoteTypes);
+
         let returnQuotes: Quote[] = [];
-        for(let quoteType of quoteTypes){
+        for(let quoteType of uniqQuoteType){
             const runableFunctionToGetQuotes = this.mapBetweenQuoteTypeToRunableFunction.get(quoteType);
             if(runableFunctionToGetQuotes){
                 returnQuotes = returnQuotes.concat(await runableFunctionToGetQuotes());
             }
         }
+
+        // Validate the page and the numberOfQuotesPerrPage
+        if (numberOfQuotesPeerPage === undefined || numberOfQuotesPeerPage > returnQuotes.length || numberOfQuotesPeerPage < 1){
+            numberOfQuotesPeerPage = returnQuotes.length;
+        }
+        if (page === undefined || page < 1){
+            page = 1
+        }
+        const maxPages = Math.floor(returnQuotes.length/numberOfQuotesPeerPage)
+        if (page > maxPages){
+            page = maxPages;
+        }
+        if (numberOfQuotesPeerPage)
+        console.log("***************" + page + "***************" + numberOfQuotesPeerPage);
         // return only the reuested page and number of quotes for the specific page
         return returnQuotes.slice((page-1)*numberOfQuotesPeerPage,page*numberOfQuotesPeerPage);
+    }
+
+    private validatePage(page:number){
+        
     }
     async getQuotesFromJson() {
         try {
@@ -131,7 +152,7 @@ class QuoteExtractor {
 async function main() {
 
     const quoteExtractor = new QuoteExtractor();
-    const returnQuotes = await quoteExtractor.getQuotes([Quotestypes.Json],1,5);
+    const returnQuotes = await quoteExtractor.getQuotes([Quotestypes.Json,Quotestypes.Json],0,0);
 
     console.log(returnQuotes);
 }
