@@ -17,9 +17,9 @@ interface OCRREsponse {
 }
 
 enum Quotestypes {
-    Json,
-    XML,
-    Image,
+    Json = "Json",
+    XML = "XML",
+    Image = "Image",
 }
 
 class QuoteExtractor {
@@ -27,12 +27,9 @@ class QuoteExtractor {
     private mapBetweenQuoteTypeToRunableFunction = new Map<Quotestypes,Function>();
     constructor(){
         // Have to bind the function in order the function will be familier with the scope (this)
-        let getQuotesFromJson: Function  = this.getQuotesFromJson.bind(this);
-        let getQuotesFromXML: Function = this.getQuotesFromXML.bind(this);
-        let getQuoFromImage: Function = this.getQuoFromImage.bind(this);
-        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Json,getQuotesFromJson);
-        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.XML,getQuotesFromXML);
-        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Image,getQuoFromImage);
+        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Json,this.getQuotesFromJson.bind(this));
+        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.XML,this.getQuotesFromXML.bind(this));
+        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Image,this.getQuotesFromImage.bind(this));
     }
     async getQuotes(quoteTypes:Quotestypes[],page:number, numberOfQuotesPeerPage:number) {
         // validate that each type pas only once
@@ -47,8 +44,17 @@ class QuoteExtractor {
         }
 
         // Validate the page and the numberOfQuotesPerrPage
-        if (numberOfQuotesPeerPage === undefined || numberOfQuotesPeerPage > returnQuotes.length || numberOfQuotesPeerPage < 1){
+        const parsedNumberOfQuetesPerPage = +numberOfQuotesPeerPage;
+        if(isNaN(parsedNumberOfQuetesPerPage)){
             numberOfQuotesPeerPage = returnQuotes.length;
+        }
+        // Validate the page and the numberOfQuotesPerrPage
+        if (numberOfQuotesPeerPage > returnQuotes.length || numberOfQuotesPeerPage < 1){
+            numberOfQuotesPeerPage = returnQuotes.length;
+        }
+        const parsePage = +page;
+        if(isNaN(parsePage)){
+            page = 1
         }
         if (page === undefined || page < 1){
             page = 1
@@ -94,7 +100,8 @@ class QuoteExtractor {
     convertFromXMLToJson(xml: string): Quote[] {
         const parseString = xml2js.parseString;
         let responseFromParse: Quote[] = [];
-        parseString(xml, { explicitArray: false }, function (error, result) {
+        parseString(xml, { explicitArray: false }, (error, result) => {
+            
             if (!error) {
                 responseFromParse = <Quote[]>result.root.quote;
             }
@@ -102,7 +109,7 @@ class QuoteExtractor {
         return responseFromParse;
     }
 
-    async getQuoFromImage() {
+    async getQuotesFromImage() {
         try {
             const response = await axios.get<Quote[]>('https://dimkinv.github.io/node-workshop/image-source.json');
             const data = response.data;

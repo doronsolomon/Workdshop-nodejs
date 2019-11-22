@@ -16,20 +16,17 @@ const axios_1 = __importDefault(require("axios"));
 const xml2js_1 = __importDefault(require("xml2js"));
 var Quotestypes;
 (function (Quotestypes) {
-    Quotestypes[Quotestypes["Json"] = 0] = "Json";
-    Quotestypes[Quotestypes["XML"] = 1] = "XML";
-    Quotestypes[Quotestypes["Image"] = 2] = "Image";
+    Quotestypes["Json"] = "Json";
+    Quotestypes["XML"] = "XML";
+    Quotestypes["Image"] = "Image";
 })(Quotestypes || (Quotestypes = {}));
 class QuoteExtractor {
     constructor() {
         this.mapBetweenQuoteTypeToRunableFunction = new Map();
         // Have to bind the function in order the function will be familier with the scope (this)
-        let getQuotesFromJson = this.getQuotesFromJson.bind(this);
-        let getQuotesFromXML = this.getQuotesFromXML.bind(this);
-        let getQuoFromImage = this.getQuoFromImage.bind(this);
-        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Json, getQuotesFromJson);
-        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.XML, getQuotesFromXML);
-        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Image, getQuoFromImage);
+        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Json, this.getQuotesFromJson.bind(this));
+        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.XML, this.getQuotesFromXML.bind(this));
+        this.mapBetweenQuoteTypeToRunableFunction.set(Quotestypes.Image, this.getQuotesFromImage.bind(this));
     }
     getQuotes(quoteTypes, page, numberOfQuotesPeerPage) {
         return __awaiter(this, void 0, void 0, function* () {
@@ -43,8 +40,17 @@ class QuoteExtractor {
                 }
             }
             // Validate the page and the numberOfQuotesPerrPage
-            if (numberOfQuotesPeerPage === undefined || numberOfQuotesPeerPage > returnQuotes.length || numberOfQuotesPeerPage < 1) {
+            const parsedNumberOfQuetesPerPage = +numberOfQuotesPeerPage;
+            if (isNaN(parsedNumberOfQuetesPerPage)) {
                 numberOfQuotesPeerPage = returnQuotes.length;
+            }
+            // Validate the page and the numberOfQuotesPerrPage
+            if (numberOfQuotesPeerPage > returnQuotes.length || numberOfQuotesPeerPage < 1) {
+                numberOfQuotesPeerPage = returnQuotes.length;
+            }
+            const parsePage = +page;
+            if (isNaN(parsePage)) {
+                page = 1;
             }
             if (page === undefined || page < 1) {
                 page = 1;
@@ -93,14 +99,14 @@ class QuoteExtractor {
     convertFromXMLToJson(xml) {
         const parseString = xml2js_1.default.parseString;
         let responseFromParse = [];
-        parseString(xml, { explicitArray: false }, function (error, result) {
+        parseString(xml, { explicitArray: false }, (error, result) => {
             if (!error) {
                 responseFromParse = result.root.quote;
             }
         });
         return responseFromParse;
     }
-    getQuoFromImage() {
+    getQuotesFromImage() {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const response = yield axios_1.default.get('https://dimkinv.github.io/node-workshop/image-source.json');
